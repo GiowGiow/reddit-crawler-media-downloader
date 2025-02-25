@@ -1,0 +1,10 @@
+[flake8]
+max-line-length = 88
+# E203: whitespace before ':', W503: line break before binary operator
+# D100-D107: missing docstring errors, D200: one-line docstring format
+# D400: first line period, E501: line too long, F401: unused imports
+extend-ignore = E203, W503, D100, D101, D102, D103, D104, D105, D106, D107, D200, D400, E501, F401, F541, D401
+exclude = .git,__pycache__,build,dist
+per-file-ignores =
+    # Allow unused imports in __init__.py files
+    __init__.py: F401

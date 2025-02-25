@@ -1,0 +1,5 @@
+downloads
+.venv
+dataset
+*.jsonl
+reddit_data
