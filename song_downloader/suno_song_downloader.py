@@ -42,7 +42,6 @@ class SunoDownloader:
         self.dirs: Dict[str, Path] = {
             "reddit": self.output_dir / "reddit",
             "suno": self.output_dir / "suno",
-            "soundcloud": self.output_dir / "soundcloud",
             "others": self.output_dir / "others",
         }
 
@@ -396,8 +395,6 @@ def download_songs_from_dataframe(
         "suno.com",
         "cdn1.suno.ai",
         "soundcloud.com",
-        "spotify.com",
-        "open.spotify.com",
     ]
     potential_audio = df[df["domain_unified"].isin(audio_domains) | df["is_video"]]
 
