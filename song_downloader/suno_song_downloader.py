@@ -510,7 +510,7 @@ def main():
     )
 
     # Output options
-    parser.add_argument("--save", help="Save the updated dataframe to JSONL file")
+    parser.add_argument("--save", help="Save the updated dataframe to JSONL file", default=True)
 
     # Parse arguments
     args = parser.parse_args()
