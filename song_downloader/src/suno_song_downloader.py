@@ -7,13 +7,11 @@ It tries yt-dlp first for compatibility with many sites, then falls back to dire
 """
 
 import argparse
-import json
-import os
 import re
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
-from urllib.parse import parse_qs, urlparse
+from typing import Any, Dict, Optional, Union
+from urllib.parse import urlparse
 
 import pandas as pd
 import requests
@@ -21,7 +19,8 @@ import yt_dlp as youtube_dl
 from requests.adapters import HTTPAdapter
 from tqdm import tqdm
 from urllib3.util import Retry
-
+import logging
+logger = logging.getLogger(__name__)
 
 class SunoDownloader:
     def __init__(
@@ -97,7 +96,7 @@ class SunoDownloader:
             Path if file exists and should be skipped, None otherwise
         """
         if filepath.exists() and self.skip_existing:
-            print(f"  Found existing file: {filepath}, skipping download")
+            logger.info(f"  Found existing file: {filepath}, skipping download")
             return filepath
         return None
 
@@ -124,27 +123,27 @@ class SunoDownloader:
                     "fallback_url"
                 )
                 if not video_url:
-                    print(f"  No fallback URL found in post data")
+                    logger.info(f"  No fallback URL found in post data")
                     return None
 
-                print(f"  Downloading directly: {video_url}")
+                logger.info(f"  Downloading directly: {video_url}")
                 # For reddit videos, download directly
                 response = self.session.get(video_url, stream=True)
                 if response.status_code == 200:
-                    print(f"  Direct download successful, saving to: {filepath}")
+                    logger.info(f"  Direct download successful, saving to: {filepath}")
                     with open(filepath, "wb") as f:
                         for chunk in response.iter_content(chunk_size=8192):
                             f.write(chunk)
                     return filepath
                 else:
-                    print(
+                    logger.info(
                         f"  Direct download failed with status code: {response.status_code}"
                     )
             else:
-                print(f"  No video information found in post data")
+                logger.info(f"  No video information found in post data")
 
         except Exception as e:
-            print(f"  Error downloading Reddit video: {e}")
+            logger.info(f"  Error downloading Reddit video: {e}")
 
         return None
 
@@ -180,19 +179,19 @@ class SunoDownloader:
                 # Construct the direct CDN URL
                 cdn_url = f"https://cdn1.suno.ai/{song_id}.mp3"
 
-                print(f"  Using direct CDN URL: {cdn_url}")
+                logger.info(f"  Using direct CDN URL: {cdn_url}")
 
                 # Download the audio file
                 response = self.session.get(cdn_url, stream=True)
                 if response.status_code == 200:
-                    print(f"  Downloading audio to: {filepath}")
+                    logger.info(f"  Downloading audio to: {filepath}")
                     with open(filepath, "wb") as f:
                         for chunk in response.iter_content(chunk_size=8192):
                             f.write(chunk)
                     return filepath
                 else:
-                    print(f"  Failed to download audio: HTTP {response.status_code}")
-                    print(f"  URL attempted: {cdn_url}")
+                    logger.info(f"  Failed to download audio: HTTP {response.status_code}")
+                    logger.info(f"  URL attempted: {cdn_url}")
             else:
                 # If we can't extract the song ID from the URL, try to get it from the URL itself
                 match = re.search(
@@ -203,25 +202,25 @@ class SunoDownloader:
                     song_id = match.group(1)
                     cdn_url = f"https://cdn1.suno.ai/{song_id}.mp3"
 
-                    print(f"  Using direct CDN URL (from regex): {cdn_url}")
+                    logger.info(f"  Using direct CDN URL (from regex): {cdn_url}")
 
                     # Download the audio file
                     response = self.session.get(cdn_url, stream=True)
                     if response.status_code == 200:
-                        print(f"  Downloading audio to: {filepath}")
+                        logger.info(f"  Downloading audio to: {filepath}")
                         with open(filepath, "wb") as f:
                             for chunk in response.iter_content(chunk_size=8192):
                                 f.write(chunk)
                         return filepath
                     else:
-                        print(
+                        logger.info(
                             f"  Failed to download audio: HTTP {response.status_code}"
                         )
-                        print(f"  URL attempted: {cdn_url}")
+                        logger.info(f"  URL attempted: {cdn_url}")
                 else:
-                    print(f"  Could not extract Suno song ID from URL: {url}")
+                    logger.info(f"  Could not extract Suno song ID from URL: {url}")
         except Exception as e:
-            print(f"  Error downloading Suno audio {url}: {e}")
+            logger.info(f"  Error downloading Suno audio {url}: {e}")
 
         return None
 
@@ -263,7 +262,7 @@ class SunoDownloader:
         existing_files = list(domain_dir.glob(f"{base_filename}.*"))
         if existing_files and self.skip_existing:
             existing_file = existing_files[0]
-            print(f"  Found existing file: {existing_file}, skipping download")
+            logger.info(f"  Found existing file: {existing_file}, skipping download")
             return existing_file
 
         existing = self.check_existing_file(filepath_direct)
@@ -271,7 +270,7 @@ class SunoDownloader:
             return existing
 
         # First attempt: Try yt-dlp as it supports many sites
-        print(f"  Trying yt-dlp for {url}...")
+        logger.info(f"  Trying yt-dlp for {url}...")
         try:
             # Configure yt-dlp options
             ydl_opts = {
@@ -301,32 +300,32 @@ class SunoDownloader:
                 new_existing_files = list(domain_dir.glob(f"{base_filename}.*"))
                 if new_existing_files:
                     downloaded_file = new_existing_files[0]
-                    print(f"  yt-dlp successfully downloaded: {downloaded_file}")
+                    logger.info(f"  yt-dlp successfully downloaded: {downloaded_file}")
                     return downloaded_file
 
-                print(
+                logger.info(
                     f"  yt-dlp did not create any files, falling back to direct download"
                 )
         except Exception as e:
-            print(f"  yt-dlp download failed: {e}")
-            print(f"  Falling back to direct download")
+            logger.info(f"  yt-dlp download failed: {e}")
+            logger.info(f"  Falling back to direct download")
 
         # Second attempt: Try direct download if yt-dlp failed
         try:
-            print(f"  Attempting direct download from {url}")
+            logger.info(f"  Attempting direct download from {url}")
             response = self.session.get(url, stream=True)
             if response.status_code == 200:
-                print(f"  Direct download successful, saving to: {filepath_direct}")
+                logger.info(f"  Direct download successful, saving to: {filepath_direct}")
                 with open(filepath_direct, "wb") as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
                 return filepath_direct
             else:
-                print(
+                logger.info(
                     f"  Direct download failed with status code: {response.status_code}"
                 )
         except Exception as e:
-            print(f"  Error during direct download: {e}")
+            logger.info(f"  Error during direct download: {e}")
 
         # If we get here, both methods failed
         return None
@@ -413,28 +412,28 @@ def download_songs_from_dataframe(
         # Construct Reddit URL if permalink exists
         reddit_url = f"https://reddit.com{permalink}" if permalink else "No Reddit URL"
 
-        print(f"Processing [{post_id}] - Domain: {domain}")
-        print(f"  Title: {title}")
-        print(f"  URL: {url}")
-        print(f"  Reddit URL: {reddit_url}")
+        logger.info(f"Processing [{post_id}] - Domain: {domain}")
+        logger.info(f"  Title: {title}")
+        logger.info(f"  URL: {url}")
+        logger.info(f"  Reddit URL: {reddit_url}")
 
         # Check if the URL is valid
         if not url or url == "No URL":
             status = "Skipped: No valid URL found"
-            print(f"  Status: {status}")
+            logger.info(f"  Status: {status}")
             df.at[idx, "download_status"] = status
             continue
 
         # Determine appropriate downloader based on domain
         if domain == "v.redd.it":
-            print(f"  Using: Reddit video downloader")
+            logger.info(f"  Using: Reddit video downloader")
             download_path = downloader.download_reddit_video(row)
         elif domain in ["suno.com", "cdn1.suno.ai"]:
-            print(f"  Using: Suno audio downloader")
+            logger.info(f"  Using: Suno audio downloader")
             download_path = downloader.download_suno_audio(url, post_id)
         else:
             # For all other domains, use the generic downloader which tries yt-dlp first
-            print(f"  Using: Generic downloader for {domain}")
+            logger.info(f"  Using: Generic downloader for {domain}")
             download_path = downloader.download_generic_url(url, post_id, domain)
 
         # Record the download path and status
@@ -448,27 +447,27 @@ def download_songs_from_dataframe(
             status = "Failed: Download was not successful"
 
         df.at[idx, "download_status"] = status
-        print(f"  Status: {status}")
-        print("-" * 80)
+        logger.info(f"  Status: {status}")
+        logger.info("-" * 80)
 
         # Sleep to avoid rate limiting
         time.sleep(sleep_time)
 
-    # Print summary of downloads
+    # logger.info summary of downloads
     success = df["download_path"].notna().sum()
     failed = len(potential_audio) - success
 
-    print("\nDownload Summary:")
-    print(f"  Total processed: {len(potential_audio)}")
-    print(f"  Successfully downloaded: {success} ({success/len(potential_audio):.1%})")
-    print(f"  Failed: {failed} ({failed/len(potential_audio):.1%})")
+    logger.info("\nDownload Summary:")
+    logger.info(f"  Total processed: {len(potential_audio)}")
+    logger.info(f"  Successfully downloaded: {success} ({success/len(potential_audio):.1%})")
+    logger.info(f"  Failed: {failed} ({failed/len(potential_audio):.1%})")
 
     # Group by status for more detailed summary
     if "download_status" in df.columns:
         status_counts = df["download_status"].value_counts()
-        print("\nStatus breakdown:")
+        logger.info("\nStatus breakdown:")
         for status, count in status_counts.items():
-            print(f"  {status}: {count}")
+            logger.info(f"  {status}: {count}")
 
     return df
 
@@ -515,34 +514,34 @@ def main():
     # Parse arguments
     args = parser.parse_args()
 
-    # Print banner
-    print("\n==================================================")
-    print("           SUNO REDDIT SONG DOWNLOADER            ")
-    print("==================================================\n")
+    # logger.info banner
+    logger.info("\n==================================================")
+    logger.info("           SUNO REDDIT SONG DOWNLOADER            ")
+    logger.info("==================================================\n")
 
     # Load the JSONL file
-    print(f"Loading data from {args.input}...")
+    logger.info(f"Loading data from {args.input}...")
     input_path = Path(args.input)
     df = pd.read_json(input_path, lines=True)
 
     # Filter by flairs
     flair_filter = args.flairs
-    print(f"Filtering by flairs: {', '.join(flair_filter)}")
+    logger.info(f"Filtering by flairs: {', '.join(flair_filter)}")
     ai_songs = df[df["link_flair_text"].isin(flair_filter)]
-    print(f"Found {len(ai_songs)} posts with song flairs")
+    logger.info(f"Found {len(ai_songs)} posts with song flairs")
 
     # Unify domains
-    print("Unifying domains...")
+    logger.info("Unifying domains...")
     ai_songs["domain_unified"] = ai_songs["domain"].apply(unify_domain)
 
     # Display domain counts
     domain_counts = ai_songs["domain_unified"].value_counts()
-    print("\nDomain counts:")
+    logger.info("\nDomain counts:")
     for domain, count in domain_counts.head(10).items():
-        print(f"  {domain}: {count}")
+        logger.info(f"  {domain}: {count}")
 
     # Download songs
-    print("\nDownloading songs...")
+    logger.info("\nDownloading songs...")
     output_dir = Path(args.output)
 
     # Download with specified parameters
@@ -558,9 +557,9 @@ def main():
     if args.save:
         output_df_path = Path(args.save)
         result_df.to_json(output_df_path, orient="records", lines=True)
-        print(f"\nUpdated dataframe saved to {output_df_path}")
+        logger.info(f"\nUpdated dataframe saved to {output_df_path}")
 
-    print("\nDone!")
+    logger.info("\nDone!")
 
 
 if __name__ == "__main__":
