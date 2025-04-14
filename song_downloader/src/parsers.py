@@ -9,11 +9,11 @@ from typing import Any, Dict, List, Optional, Union
 import pandas as pd
 from tqdm import tqdm
 
-from song_downloader.src.downloader import SunoDownloader
+from song_downloader.src.downloader import MusicDownloader
 
 
 def parse_and_download_jsonl(
-    downloader: SunoDownloader,
+    downloader: MusicDownloader,
     jsonl_path: Union[str, Path],
     url_field: str = "url",
     id_field: str = "id",

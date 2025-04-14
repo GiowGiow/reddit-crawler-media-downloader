@@ -5,6 +5,9 @@ Utility functions for the Suno Downloader.
 import re
 from pathlib import Path
 from typing import Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def sanitize_filename(filename: str) -> str:
@@ -142,3 +145,16 @@ def parse_arguments():
     args = parser.parse_args()
     return args
 
+
+def filter_by_flairs(args, df):
+    flair_filter = args.flairs
+    logger.info(f"Filtering by flairs: {', '.join(flair_filter)}")
+    ai_songs = df[df["link_flair_text"].isin(flair_filter)]
+    logger.info(f"Found {len(ai_songs)} posts with song flairs")
+    return ai_songs
+
+def load_jsonl_posts(args):
+    logger.info(f"Loading data from {args.input}...")
+    input_path = Path(args.input)
+    df = pd.read_json(input_path, lines=True)
+    return df

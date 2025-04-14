@@ -28,7 +28,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class SunoDownloader:
+class MusicDownloader:
     def __init__(
         self, output_dir: Union[str, Path] = "dataset", skip_existing: bool = True
     ):

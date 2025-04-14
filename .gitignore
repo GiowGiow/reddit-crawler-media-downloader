@@ -3,5 +3,5 @@ downloads
 dataset
 *.jsonl
 reddit_data
-
+venv
 datasets
