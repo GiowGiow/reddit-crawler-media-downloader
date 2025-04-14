@@ -7,34 +7,40 @@ It tries yt-dlp first for compatibility with many sites, then falls back to dire
 """
 
 
+import logging
 import time
-from pathlib import Path
-from typing import Optional, Union, List
 from enum import Enum
+from pathlib import Path
+from typing import List, Optional, Union
+
 import pandas as pd
 from tqdm import tqdm
-import logging
 
-from song_downloader.src.utils import filter_by_flairs, load_jsonl_posts, parse_arguments
 from song_downloader.src.downloader import MusicDownloader
-from song_downloader.src.utils import unify_domain
+from song_downloader.src.utils import (
+    filter_by_flairs,
+    load_jsonl_posts,
+    parse_arguments,
+    unify_domain,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class AudioDomainType(Enum):
     """Enum representing different types of audio domains."""
+
     REDDIT = "v.redd.it"
     YOUTUBE = "youtube.com"
     SUNO = "suno.com"
     SUNO_CDN = "cdn1.suno.ai"
     SOUNDCLOUD = "soundcloud.com"
-    
+
     @classmethod
     def get_all_domains(cls) -> List[str]:
         """Return a list of all domain values."""
         return [domain.value for domain in cls]
-    
+
     @classmethod
     def get_suno_domains(cls) -> List[str]:
         """Return a list of Suno-related domains."""
@@ -70,7 +76,10 @@ def download_songs_from_dataframe(
 
     # Filter to keep only rows that might have audio
     audio_domains = AudioDomainType.get_all_domains()
-    potential_audio = suno_ai_posts_df[suno_ai_posts_df["domain_unified"].isin(audio_domains) | suno_ai_posts_df["is_video"]]
+    potential_audio = suno_ai_posts_df[
+        suno_ai_posts_df["domain_unified"].isin(audio_domains)
+        | suno_ai_posts_df["is_video"]
+    ]
 
     # Limit number of items if specified
     if max_items_to_download and max_items_to_download > 0:
@@ -134,7 +143,9 @@ def download_songs_from_dataframe(
 
     logger.info("\nDownload Summary:")
     logger.info(f"  Total processed: {len(potential_audio)}")
-    logger.info(f"  Successfully downloaded: {success} ({success/len(potential_audio):.1%})")
+    logger.info(
+        f"  Successfully downloaded: {success} ({success/len(potential_audio):.1%})"
+    )
     logger.info(f"  Failed: {failed} ({failed/len(potential_audio):.1%})")
 
     # Group by status for more detailed summary

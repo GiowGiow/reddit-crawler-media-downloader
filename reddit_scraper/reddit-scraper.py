@@ -1,17 +1,29 @@
 #!/usr/bin/env python3
 """
 Python adapted code to download Reddit data using Arctic Shift API.
+
 More on Arctic Shift API: https://arctic-shift.photon-reddit.com
 """
 import datetime
+import logging
 import os
+import sys
 
 from reddit_scraper.src.constants import API_URL
-from reddit_scraper.src.downloader import ArchiveStream, CombinedArchiveStream, DownloadType
-from reddit_scraper.src.utils import number_to_short_str, parse_arguments, parse_dates, validate_subreddit_or_username_exists
-import logging
+from reddit_scraper.src.downloader import (
+    ArchiveStream,
+    CombinedArchiveStream,
+    DownloadType,
+)
+from reddit_scraper.src.utils import (
+    number_to_short_str,
+    parse_arguments,
+    parse_dates,
+    validate_subreddit_or_username_exists,
+)
 
 logger = logging.getLogger(__name__)
+
 
 def main():
     args = parse_arguments()
@@ -28,7 +40,9 @@ def main():
 
     try:
         # Validate the name and get info
-        start_timestamp, info = validate_subreddit_or_username_exists(args.name, download_type)
+        start_timestamp, info = validate_subreddit_or_username_exists(
+            args.name, download_type
+        )
 
         # Display info
         if download_type == DownloadType.SUBREDDIT:
@@ -89,7 +103,6 @@ def main():
         return 1
 
     return 0
-
 
 
 if __name__ == "__main__":

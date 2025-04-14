@@ -15,11 +15,12 @@ from typing import Dict, Optional, Union
 import pandas as pd
 from tqdm import tqdm
 
+from song_downloader.src.utils import unify_domain
+
 
 def sanitize_filename(filename: str) -> str:
     """Sanitize a filename to remove invalid characters."""
     return re.sub(r'[\\/*?:"<>|]', "_", filename)
-
 
 
 def get_all_downloaded_files(base_dir: Union[str, Path]) -> Dict[str, Path]:

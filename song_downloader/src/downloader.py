@@ -2,19 +2,12 @@
 Core downloader class for the Suno Downloader.
 """
 
-import time
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
-
-import requests
-from requests.adapters import HTTPAdapter
-from tqdm import tqdm
-from urllib3.util import Retry
 import argparse
+import logging
 import re
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlparse
 
 import pandas as pd
@@ -23,7 +16,6 @@ import yt_dlp as youtube_dl
 from requests.adapters import HTTPAdapter
 from tqdm import tqdm
 from urllib3.util import Retry
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -196,7 +188,9 @@ class MusicDownloader:
                             f.write(chunk)
                     return filepath
                 else:
-                    logger.info(f"  Failed to download audio: HTTP {response.status_code}")
+                    logger.info(
+                        f"  Failed to download audio: HTTP {response.status_code}"
+                    )
                     logger.info(f"  URL attempted: {cdn_url}")
             else:
                 # If we can't extract the song ID from the URL, try to get it from the URL itself
@@ -321,7 +315,9 @@ class MusicDownloader:
             logger.info(f"  Attempting direct download from {url}")
             response = self.session.get(url, stream=True)
             if response.status_code == 200:
-                logger.info(f"  Direct download successful, saving to: {filepath_direct}")
+                logger.info(
+                    f"  Direct download successful, saving to: {filepath_direct}"
+                )
                 with open(filepath_direct, "wb") as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
@@ -335,4 +331,3 @@ class MusicDownloader:
 
         # If we get here, both methods failed
         return None
-

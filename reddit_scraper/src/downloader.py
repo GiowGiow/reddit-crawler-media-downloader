@@ -1,13 +1,14 @@
 import datetime
 import json
+import logging
 import time
 from dataclasses import dataclass
 from typing import Dict, List, Optional
-import logging
 
 import requests
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class DownloadStats:

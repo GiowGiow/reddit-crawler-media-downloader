@@ -149,9 +149,9 @@ def generate_dataset_subsets(
                 dst_path = dst_dir / src_path.name
 
                 # Update the path in the DataFrame to be relative to the subset directory
-                subset_df_with_local_paths.at[idx, "download_path"] = (
-                    f"{subdir_name}/{src_path.name}"
-                )
+                subset_df_with_local_paths.at[
+                    idx, "download_path"
+                ] = f"{subdir_name}/{src_path.name}"
 
                 try:
                     if src_path.exists():
@@ -246,12 +246,12 @@ def main():
     print(f"Loaded {len(df)} posts")
 
     # Define dataset sizes
-    sizes = {"small": args.small, "medium": args.medium, "large": args.large}
+    # sizes = {"small": args.small, "medium": args.medium, "large": args.large}
 
     # Generate subsets
-    subsets = generate_dataset_subsets(
-        df, args.output, sizes, copy_files=not args.no_copy
-    )
+    # subsets = generate_dataset_subsets(
+    #     df, args.output, sizes, copy_files=not args.no_copy
+    # )
 
     # Save the full dataset with genre information if requested
     if args.update_all:

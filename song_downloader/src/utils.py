@@ -2,10 +2,13 @@
 Utility functions for the Suno Downloader.
 """
 
+import argparse
+import logging
 import re
 from pathlib import Path
 from typing import Optional
-import logging
+
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +78,7 @@ def extract_song_id(url: str) -> Optional[str]:
 
     return None
 
+
 def unify_domain(domain: str) -> str:
     """
     Unify domain names for better categorization.
@@ -89,7 +93,12 @@ def unify_domain(domain: str) -> str:
         return "N/A"
     domain_lower_case = domain.lower().strip()
     # unify youtube
-    if domain_lower_case in ["youtube.com", "youtu.be", "m.youtube.com", "music.youtube.com"]:
+    if domain_lower_case in [
+        "youtube.com",
+        "youtu.be",
+        "m.youtube.com",
+        "music.youtube.com",
+    ]:
         return "youtube.com"
     # unify soundcloud
     if domain_lower_case in ["soundcloud.com", "m.soundcloud.com", "on.soundcloud.com"]:
@@ -102,6 +111,7 @@ def unify_domain(domain: str) -> str:
         return "N/A"
     # for everything else, just return as is
     return domain_lower_case
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
@@ -139,7 +149,9 @@ def parse_arguments():
     )
 
     # Output options
-    parser.add_argument("--save", help="Save the updated dataframe to JSONL file", default=True)
+    parser.add_argument(
+        "--save", help="Save the updated dataframe to JSONL file", default=True
+    )
 
     # Parse arguments
     args = parser.parse_args()
@@ -152,6 +164,7 @@ def filter_by_flairs(args, df):
     ai_songs = df[df["link_flair_text"].isin(flair_filter)]
     logger.info(f"Found {len(ai_songs)} posts with song flairs")
     return ai_songs
+
 
 def load_jsonl_posts(args):
     logger.info(f"Loading data from {args.input}...")

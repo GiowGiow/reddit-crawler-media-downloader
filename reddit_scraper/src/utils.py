@@ -1,12 +1,18 @@
 import argparse
 import datetime
+import logging
 from typing import Tuple
 
 import requests
 
 from reddit_scraper.src.constants import API_URL, DownloadType
 
-def validate_subreddit_or_username_exists(name: str, download_type: DownloadType) -> Tuple[bool, dict]:
+logger = logging.getLogger(__name__)
+
+
+def validate_subreddit_or_username_exists(
+    name: str, download_type: DownloadType
+) -> Tuple[bool, dict]:
     """Validate that the subreddit or user exists and get its info"""
     if len(name) < 2:
         raise ValueError("Name must be at least 2 characters long")
@@ -58,7 +64,6 @@ def number_to_short_str(num: int) -> str:
         return str(num)
 
 
-
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Download Reddit posts and comments from a subreddit or user"
@@ -100,12 +105,13 @@ def parse_arguments() -> argparse.Namespace:
     args = parser.parse_args()
     return args
 
+
 def parse_dates(args):
     if args.start_date:
         start_date = datetime.datetime.strptime(args.start_date, "%Y-%m-%d")
         start_timestamp = int(start_date.timestamp() * 1000)
     else:
-            # Use the validated start timestamp but set time to midnight
+        # Use the validated start timestamp but set time to midnight
         start_date = datetime.datetime.fromtimestamp(start_timestamp / 1000)
         start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
         start_timestamp = int(start_date.timestamp() * 1000)
@@ -116,12 +122,13 @@ def parse_dates(args):
         end_timestamp = int(end_date.timestamp() * 1000)
 
     logger.info(
-            f"Start date: {datetime.datetime.fromtimestamp(start_timestamp/1000).strftime('%Y-%m-%d')}"
-        )
+        f"Start date: {datetime.datetime.fromtimestamp(start_timestamp/1000).strftime('%Y-%m-%d')}"
+    )
     if end_timestamp:
         logger.info(
-                f"End date: {datetime.datetime.fromtimestamp(end_timestamp/1000).strftime('%Y-%m-%d')}"
-            )
+            f"End date: {datetime.datetime.fromtimestamp(end_timestamp/1000).strftime('%Y-%m-%d')}"
+        )
     else:
         logger.info("End date: Now")
-    return start_timestamp,end_timestamp
+
+    return start_timestamp, end_timestamp
