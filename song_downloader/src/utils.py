@@ -71,3 +71,74 @@ def extract_song_id(url: str) -> Optional[str]:
         return match.group(1)
 
     return None
+
+def unify_domain(domain: str) -> str:
+    """
+    Unify domain names for better categorization.
+
+    Args:
+        domain: The domain to unify
+
+    Returns:
+        Unified domain name
+    """
+    if not domain:
+        return "N/A"
+    domain_lower_case = domain.lower().strip()
+    # unify youtube
+    if domain_lower_case in ["youtube.com", "youtu.be", "m.youtube.com", "music.youtube.com"]:
+        return "youtube.com"
+    # unify soundcloud
+    if domain_lower_case in ["soundcloud.com", "m.soundcloud.com", "on.soundcloud.com"]:
+        return "soundcloud.com"
+    # unify X/Twitter
+    if domain_lower_case == "x.com":
+        return "twitter.com"
+    # handle empty domains
+    if not domain_lower_case:
+        return "N/A"
+    # for everything else, just return as is
+    return domain_lower_case
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(
+        description="Download songs from the SunoAI subreddit."
+    )
+
+    # Input options
+    parser.add_argument(
+        "--input", required=True, help="Path to JSONL file with Reddit posts"
+    )
+    parser.add_argument(
+        "--output", default="dataset", help="Output directory for downloads"
+    )
+
+    # Filter options
+    parser.add_argument(
+        "--flairs",
+        nargs="+",
+        default=[
+            "Song - Audio Upload",
+            "Song - Human Written Lyrics",
+            "Song",
+            "Meme Song",
+        ],
+        help="List of flairs to filter by",
+    )
+
+    # Download options
+    parser.add_argument("--max", type=int, help="Maximum number of items to download")
+    parser.add_argument(
+        "--force", action="store_true", help="Force re-download of existing files"
+    )
+    parser.add_argument(
+        "--sleep", type=float, default=0.5, help="Sleep time between requests"
+    )
+
+    # Output options
+    parser.add_argument("--save", help="Save the updated dataframe to JSONL file", default=True)
+
+    # Parse arguments
+    args = parser.parse_args()
+    return args
+

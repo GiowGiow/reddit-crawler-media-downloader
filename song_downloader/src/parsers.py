@@ -7,8 +7,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import pandas as pd
-from suno_downloader.downloader import SunoDownloader
 from tqdm import tqdm
+
+from song_downloader.src.downloader import SunoDownloader
 
 
 def parse_and_download_jsonl(

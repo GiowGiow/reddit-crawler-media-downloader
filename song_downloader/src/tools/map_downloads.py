@@ -21,28 +21,6 @@ def sanitize_filename(filename: str) -> str:
     return re.sub(r'[\\/*?:"<>|]', "_", filename)
 
 
-def unify_domain(domain: str) -> str:
-    """
-    Unify domain names for better categorization.
-    """
-    if not domain:
-        return "N/A"
-    d = domain.lower().strip()
-    # unify youtube
-    if d in ["youtube.com", "youtu.be", "m.youtube.com", "music.youtube.com"]:
-        return "youtube.com"
-    # unify soundcloud
-    if d in ["soundcloud.com", "m.soundcloud.com", "on.soundcloud.com"]:
-        return "soundcloud.com"
-    # unify X/Twitter
-    if d == "x.com":
-        return "twitter.com"
-    # handle empty domains
-    if not d:
-        return "N/A"
-    # for everything else, just return as is
-    return d
-
 
 def get_all_downloaded_files(base_dir: Union[str, Path]) -> Dict[str, Path]:
     """
