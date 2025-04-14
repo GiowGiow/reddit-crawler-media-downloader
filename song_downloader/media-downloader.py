@@ -21,7 +21,7 @@ from tqdm import tqdm
 from urllib3.util import Retry
 import logging
 
-from reddit_scraper.src.utils import parse_arguments
+from song_downloader.src.utils import parse_arguments
 from song_downloader.src.downloader import SunoDownloader
 from song_downloader.src.utils import unify_domain
 
