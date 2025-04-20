@@ -1,7 +1,6 @@
 import enum
-from pathlib import Path
 import logging
-from typing import Tuple, Optional, Any, Dict, Union
+from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urljoin
 
 from song_downloader.src.downloader import MusicDownloader
