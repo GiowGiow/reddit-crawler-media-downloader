@@ -12,7 +12,7 @@ import requests
 import yt_dlp as youtube_dl
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
-
+import yt_dlp.utils
 from song_downloader.src.constants import AudioDomainType
 
 logger = logging.getLogger(__name__)
@@ -96,52 +96,24 @@ class MusicDownloader:
             return filepath
         return None
 
-    def download_reddit_video(self, post_data: Dict[str, Any]) -> Optional[Path]:
-        """Download a Reddit video using direct download."""
-        post_id = post_data["id"]
-        title = self.sanitize_filename(post_data.get("title", post_id))
-        filename = f"{post_id}_{title[:50]}.mp4"
-        filepath = self.dirs["reddit"] / filename
-
-        # Check if file already exists
-        existing = self.check_existing_file(filepath)
-        if existing:
-            return existing
-
+    def _attempt_suno_download(self, cdn_url: str, filepath: Path) -> Optional[Path]:
+        """Helper function to attempt downloading from a Suno CDN URL."""
         try:
-            # Direct download if we have video information
-            if (
-                post_data.get("is_video", False)
-                and post_data.get("secure_media")
-                and post_data["secure_media"].get("reddit_video")
-            ):
-                video_url = post_data["secure_media"]["reddit_video"].get(
-                    "fallback_url"
-                )
-                if not video_url:
-                    logger.info("  No fallback URL found in post data")
-                    return None
-
-                logger.info("  Downloading directly: {video_url}")
-                # For reddit videos, download directly
-                response = self.session.get(video_url, stream=True)
-                if response.status_code == 200:
-                    logger.info("  Direct download successful, saving to: {filepath}")
-                    with open(filepath, "wb") as f:
-                        for chunk in response.iter_content(chunk_size=8192):
-                            f.write(chunk)
-                    return filepath
-                else:
-                    logger.info(
-                        f"  Direct download failed with status code: {response.status_code}"
-                    )
+            logger.info(f"  Attempting download from: {cdn_url}")
+            response = self.session.get(cdn_url, stream=True)
+            if response.status_code == 200:
+                logger.info(f"  Downloading audio to: {filepath}")
+                with open(filepath, "wb") as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                return filepath
             else:
-                logger.info("  No video information found in post data")
-
-        except Exception as e:
-            logger.info(f"  Error downloading Reddit video: {e}")
-
-        return None
+                logger.info(f"  Failed to download audio: HTTP {response.status_code}")
+                logger.info(f"  URL attempted: {cdn_url}")
+                return None
+        except requests.exceptions.RequestException as e:
+            logger.info(f"  Network error downloading Suno audio {cdn_url}: {e}")
+            return None
 
     def download_suno_audio(self, url: str, post_id: str) -> Optional[Path]:
         """
@@ -154,73 +126,42 @@ class MusicDownloader:
         Returns:
             Path to the downloaded file or None if failed
         """
-        # Create a filename based on the post ID
         filename = f"{post_id}.mp3"
         filepath = self.dirs["suno"] / filename
 
-        # Check if file already exists
         existing = self.check_existing_file(filepath)
         if existing:
             return existing
 
+        song_id = None
         try:
-            # Extract the song ID from the URL
-            # URL pattern: https://suno.com/song/{song_id}
+            # Try extracting song ID from path first
             parsed_url = urlparse(url)
             path_parts = parsed_url.path.strip("/").split("/")
-
-            # If the URL format is as expected
             if len(path_parts) >= 2 and path_parts[0] == "song":
                 song_id = path_parts[1]
-                # Construct the direct CDN URL
-                cdn_url = f"https://cdn1.suno.ai/{song_id}.mp3"
+                logger.info(f"  Extracted Suno song ID from path: {song_id}")
 
-                logger.info(f"  Using direct CDN URL: {cdn_url}")
-
-                # Download the audio file
-                response = self.session.get(cdn_url, stream=True)
-                if response.status_code == 200:
-                    logger.info(f"  Downloading audio to: {filepath}")
-                    with open(filepath, "wb") as f:
-                        for chunk in response.iter_content(chunk_size=8192):
-                            f.write(chunk)
-                    return filepath
-                else:
-                    logger.info(
-                        f"  Failed to download audio: HTTP {response.status_code}"
-                    )
-                    logger.info(f"  URL attempted: {cdn_url}")
-            else:
-                # If we can't extract the song ID from the URL, try to get it from the URL itself
+            # If not found in path, try regex
+            if not song_id:
                 match = re.search(
                     r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
                     url,
                 )
                 if match:
                     song_id = match.group(1)
-                    cdn_url = f"https://cdn1.suno.ai/{song_id}.mp3"
+                    logger.info(f"  Extracted Suno song ID via regex: {song_id}")
 
-                    logger.info(f"  Using direct CDN URL (from regex): {cdn_url}")
+            if song_id:
+                cdn_url = f"https://cdn1.suno.ai/{song_id}.mp3"
+                return self._attempt_suno_download(cdn_url, filepath)
+            else:
+                logger.info(f"  Could not extract Suno song ID from URL: {url}")
+                return None
 
-                    # Download the audio file
-                    response = self.session.get(cdn_url, stream=True)
-                    if response.status_code == 200:
-                        logger.info(f"  Downloading audio to: {filepath}")
-                        with open(filepath, "wb") as f:
-                            for chunk in response.iter_content(chunk_size=8192):
-                                f.write(chunk)
-                        return filepath
-                    else:
-                        logger.info(
-                            f"  Failed to download audio: HTTP {response.status_code}"
-                        )
-                        logger.info(f"  URL attempted: {cdn_url}")
-                else:
-                    logger.info(f"  Could not extract Suno song ID from URL: {url}")
-        except Exception as e:
-            logger.info(f"  Error downloading Suno audio {url}: {e}")
-
-        return None
+        except Exception as e:  # Catch potential errors during parsing/regex
+            logger.info(f"  Error processing Suno URL {url}: {e}")
+            return None
 
     def download_using_yt_dlp(
         self, url: str, post_id: str, domain: str
@@ -236,78 +177,67 @@ class MusicDownloader:
         Returns:
             Path to the downloaded file or None if failed
         """
-        # Determine the output directory and filename
         domain_dir = self.dirs.get(domain, self.dirs["others"])
+        sanitized_post_id = self.sanitize_filename(post_id)
 
-        # Create a base filename without extension (yt-dlp will add the appropriate extension)
-        base_filename = f"{self.sanitize_filename(post_id)}"
-        filepath_base = domain_dir / base_filename
+        # Define the output template for yt-dlp (without extension)
+        output_template_base = domain_dir / f"{sanitized_post_id}"
+        # Define the expected final path after postprocessing
+        final_filepath = Path(f"{output_template_base}.mp3")
 
-        # For the direct download fallback, we need a filename with extension
-        parsed_url = urlparse(url)
-        url_filename = Path(parsed_url.path).name
-        if url_filename and "." in url_filename:
-            # Use the filename from the URL if it has an extension
-            direct_filename = f"{self.sanitize_filename(post_id)}_{url_filename}"
-        else:
-            # Default to mp3 if no extension can be determined
-            direct_filename = f"{self.sanitize_filename(post_id)}.mp3"
+        # Check if the final MP3 file already exists
+        if final_filepath.exists() and self.skip_existing:
+            logger.info(
+                f"  Found existing MP3 file: {final_filepath}, skipping download for post {post_id}"
+            )
+            return final_filepath
 
-        filepath_direct = domain_dir / direct_filename
-
-        # Check if either file already exists
-        # We need to check both possible filenames
-        existing_files = list(domain_dir.glob(f"{base_filename}.*"))
-        if existing_files and self.skip_existing:
-            existing_file = existing_files[0]
-            logger.info(f"  Found existing file: {existing_file}, skipping download")
-            return existing_file
-
-        existing = self.check_existing_file(filepath_direct)
-        if existing:
-            return existing
-
-        # First attempt: Try yt-dlp as it supports many sites
-        logger.info(f"  Trying yt-dlp for {url}...")
+        logger.info(f"Attempting yt-dlp download for post {post_id} from {url}")
         try:
             # Configure yt-dlp options
-            ydl_opts = {
-                "format": "bestaudio/best",
-                "postprocessors": [
-                    {
-                        "key": "FFmpegExtractAudio",
-                        "preferredcodec": "mp3",
-                        "preferredquality": "192",
-                    }
-                ],
-                "outtmpl": str(filepath_base),
-                "quiet": True,
-                "no_warnings": True,
-                "nocheckcertificate": True,
-                "ignoreerrors": True,
-                "no_color": True,
-                "geo_bypass": True,
-                "retries": 5,
-                "fragment_retries": 5,
-            }
+            ydl_opts = self.ydl_opts.copy()
+            # Pass the base path without extension to outtmpl
+            ydl_opts["outtmpl"] = str(output_template_base)
 
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
 
-                # Check if any file was created with the base filename
-                new_existing_files = list(domain_dir.glob(f"{base_filename}.*"))
-                if new_existing_files:
-                    downloaded_file = new_existing_files[0]
-                    logger.info(f"  yt-dlp successfully downloaded: {downloaded_file}")
-                    return downloaded_file
+                # After download, verify the expected MP3 file was created
+                if final_filepath.exists():
+                    logger.info(
+                        f"  yt-dlp successfully downloaded and converted: {final_filepath}"
+                    )
+                    return final_filepath
+                else:
+                    # Check if *any* file was created, maybe postprocessing failed
+                    downloaded_files = list(domain_dir.glob(f"{sanitized_post_id}.*"))
+                    if downloaded_files:
+                        downloaded_file = downloaded_files[0]
+                        logger.warning(
+                            f"  yt-dlp downloaded but failed postprocessing (expected .mp3): {downloaded_file}"
+                        )
+                        # Decide whether to return the non-mp3 file or None
+                        # return downloaded_file # Uncomment if non-mp3 is acceptable
+                        return None  # Return None if only mp3 is desired
+                    else:
+                        logger.warning(
+                            f"  yt-dlp ran but no output file found for post {post_id} matching pattern."
+                        )
+                        return None
 
-                logger.info(
-                    "  yt-dlp did not create any files, falling back to direct download"
-                )
+        except yt_dlp.utils.DownloadError as e:
+            # More specific error from yt-dlp
+            logger.warning(f"  yt-dlp download error for post {post_id} ({url}): {e}")
+            return None
         except Exception as e:
-            logger.info(f"  yt-dlp download failed: {e}")
-            logger.info("  Falling back to direct download")
+            # Catch other potential errors during yt-dlp execution
+            logger.error(
+                f"  Unexpected error during yt-dlp download for post {post_id} ({url}): {e}",
+                exc_info=True,
+            )
+            return None
 
+        # This return is likely unreachable now but kept for safety
         return None
 
     def download_by_domain(self, row):
@@ -329,9 +259,7 @@ class MusicDownloader:
             return None
 
         # Determine appropriate downloader based on domain
-        if domain == AudioDomainType.REDDIT.value:
-            return self.download_reddit_video(row)
-        elif domain in AudioDomainType.get_suno_domains():
+        if domain in AudioDomainType.get_suno_domains():
             return self.download_suno_audio(url, post_id)
         else:
             return self.download_using_yt_dlp(url, post_id, domain)
