@@ -173,7 +173,7 @@ def load_jsonl_posts(args):
     return df
 
 
-def diplay_domains_cli(ai_songs):
+def diplay_domains_counts_cli(ai_songs):
     domain_counts = ai_songs["domain_unified"].value_counts()
     logger.info("\nDomain counts:")
     for domain, count in domain_counts.head(10).items():

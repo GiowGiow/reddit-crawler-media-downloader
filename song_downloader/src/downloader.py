@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional, Union
 from urllib.parse import urlparse
 
 import requests
+from song_downloader.src.constants import AudioDomainType
 import yt_dlp as youtube_dl
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
@@ -307,3 +308,30 @@ class MusicDownloader:
             logger.info("  Falling back to direct download")
 
         return None
+
+    def download_by_domain(self, row):
+        """
+        Select appropriate download method based on domain and download the content.
+
+        Args:
+            row: DataFrame row containing post information
+
+        Returns:
+            Path to downloaded file or None if download failed
+        """
+        post_id = row["id"]
+        url = row.get("url", "No URL")
+        domain = row.get("domain_unified", "Unknown domain")
+
+        # Check if the URL is valid
+        if not url or url == "No URL":
+            return None
+
+        # Determine appropriate downloader based on domain
+        if domain == AudioDomainType.REDDIT.value:
+            return self.download_reddit_video(row)
+        elif domain in AudioDomainType.get_suno_domains():
+            return self.download_suno_audio(url, post_id)
+        else:
+            # For all other domains, use the generic downloader which tries yt-dlp first
+            return self.download_generic_url(url, post_id, domain)
