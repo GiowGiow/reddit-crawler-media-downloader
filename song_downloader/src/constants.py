@@ -1,0 +1,22 @@
+from enum import Enum
+from typing import List
+
+
+class AudioDomainType(Enum):
+    """Enum representing different types of audio domains."""
+
+    REDDIT = "v.redd.it"
+    YOUTUBE = "youtube.com"
+    SUNO = "suno.com"
+    SUNO_CDN = "cdn1.suno.ai"
+    SOUNDCLOUD = "soundcloud.com"
+
+    @classmethod
+    def get_all_domains(cls) -> List[str]:
+        """Return a list of all domain values."""
+        return [domain.value for domain in cls]
+
+    @classmethod
+    def get_suno_domains(cls) -> List[str]:
+        """Return a list of Suno-related domains."""
+        return [cls.SUNO.value, cls.SUNO_CDN.value]

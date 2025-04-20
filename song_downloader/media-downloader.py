@@ -9,15 +9,17 @@ It tries yt-dlp first for compatibility with many sites, then falls back to dire
 
 import logging
 import time
-from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Optional, Union
+from urllib.parse import urljoin
 
 import pandas as pd
 from tqdm import tqdm
 
+from song_downloader.src.constants import AudioDomainType
 from song_downloader.src.downloader import MusicDownloader
 from song_downloader.src.utils import (
+    diplay_domains_cli,
     filter_by_flairs,
     load_jsonl_posts,
     parse_arguments,
@@ -25,26 +27,6 @@ from song_downloader.src.utils import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-class AudioDomainType(Enum):
-    """Enum representing different types of audio domains."""
-
-    REDDIT = "v.redd.it"
-    YOUTUBE = "youtube.com"
-    SUNO = "suno.com"
-    SUNO_CDN = "cdn1.suno.ai"
-    SOUNDCLOUD = "soundcloud.com"
-
-    @classmethod
-    def get_all_domains(cls) -> List[str]:
-        """Return a list of all domain values."""
-        return [domain.value for domain in cls]
-
-    @classmethod
-    def get_suno_domains(cls) -> List[str]:
-        """Return a list of Suno-related domains."""
-        return [cls.SUNO.value, cls.SUNO_CDN.value]
 
 
 def download_songs_from_dataframe(
@@ -94,7 +76,9 @@ def download_songs_from_dataframe(
         permalink = row.get("permalink", None)
 
         # Construct Reddit URL if permalink exists
-        reddit_url = f"https://reddit.com{permalink}" if permalink else "No Reddit URL"
+        reddit_url = (
+            urljoin("https://reddit.com", permalink) if permalink else "No Reddit URL"
+        )
 
         logger.info(f"Processing [{post_id}] - Domain: {domain}")
         logger.info(f"  Title: {title}")
@@ -110,14 +94,14 @@ def download_songs_from_dataframe(
 
         # Determine appropriate downloader based on domain
         if domain == AudioDomainType.REDDIT.value:
-            logger.info(f"  Using: Reddit video downloader")
+            logger.info("  Using: Reddit video downloader")
             download_path = downloader.download_reddit_video(row)
         elif domain in AudioDomainType.get_suno_domains():
-            logger.info(f"  Using: Suno audio downloader")
+            logger.info("  Using: Suno audio downloader")
             download_path = downloader.download_suno_audio(url, post_id)
         else:
             # For all other domains, use the generic downloader which tries yt-dlp first
-            logger.info(f"  Using: Generic downloader for {domain}")
+            logger.info("  Using: Generic downloader for {domain}")
             download_path = downloader.download_generic_url(url, post_id, domain)
 
         # Record the download path and status
@@ -178,10 +162,7 @@ def main():
     ai_songs["domain_unified"] = ai_songs["domain"].apply(unify_domain)
 
     # Display domain counts
-    domain_counts = ai_songs["domain_unified"].value_counts()
-    logger.info("\nDomain counts:")
-    for domain, count in domain_counts.head(10).items():
-        logger.info(f"  {domain}: {count}")
+    diplay_domains_cli(ai_songs)
 
     # Download songs
     logger.info("\nDownloading songs...")

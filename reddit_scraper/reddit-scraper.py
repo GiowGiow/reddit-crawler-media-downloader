@@ -4,7 +4,6 @@ Python adapted code to download Reddit data using Arctic Shift API.
 
 More on Arctic Shift API: https://arctic-shift.photon-reddit.com
 """
-import datetime
 import logging
 import os
 import sys

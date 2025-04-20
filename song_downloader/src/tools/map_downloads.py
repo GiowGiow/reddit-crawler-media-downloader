@@ -10,7 +10,7 @@ import argparse
 import re
 import sys
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict, Union
 
 import pandas as pd
 from tqdm import tqdm
@@ -158,7 +158,7 @@ def map_files_to_posts(
 
     # Print summary
     new_matches = matched_count - previously_matched
-    print(f"\nMapping Summary:")
+    print("\nMapping Summary:")
     print(f"  Total posts: {len(df)}")
     print(f"  Previously mapped: {previously_matched}")
     print(f"  Newly mapped: {new_matches}")

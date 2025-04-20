@@ -2,19 +2,15 @@
 Core downloader class for the Suno Downloader.
 """
 
-import argparse
 import logging
 import re
-import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 from urllib.parse import urlparse
 
-import pandas as pd
 import requests
 import yt_dlp as youtube_dl
 from requests.adapters import HTTPAdapter
-from tqdm import tqdm
 from urllib3.util import Retry
 
 logger = logging.getLogger(__name__)
@@ -121,14 +117,14 @@ class MusicDownloader:
                     "fallback_url"
                 )
                 if not video_url:
-                    logger.info(f"  No fallback URL found in post data")
+                    logger.info("  No fallback URL found in post data")
                     return None
 
-                logger.info(f"  Downloading directly: {video_url}")
+                logger.info("  Downloading directly: {video_url}")
                 # For reddit videos, download directly
                 response = self.session.get(video_url, stream=True)
                 if response.status_code == 200:
-                    logger.info(f"  Direct download successful, saving to: {filepath}")
+                    logger.info("  Direct download successful, saving to: {filepath}")
                     with open(filepath, "wb") as f:
                         for chunk in response.iter_content(chunk_size=8192):
                             f.write(chunk)
@@ -138,7 +134,7 @@ class MusicDownloader:
                         f"  Direct download failed with status code: {response.status_code}"
                     )
             else:
-                logger.info(f"  No video information found in post data")
+                logger.info("  No video information found in post data")
 
         except Exception as e:
             logger.info(f"  Error downloading Reddit video: {e}")
@@ -228,7 +224,7 @@ class MusicDownloader:
         self, url: str, post_id: str, domain: str
     ) -> Optional[Path]:
         """
-        Download from a generic URL using yt-dlp first, then falling back to direct download.
+        Download from a generic URL using yt-dlp.
 
         Args:
             url: URL to download from
@@ -304,30 +300,10 @@ class MusicDownloader:
                     return downloaded_file
 
                 logger.info(
-                    f"  yt-dlp did not create any files, falling back to direct download"
+                    "  yt-dlp did not create any files, falling back to direct download"
                 )
         except Exception as e:
             logger.info(f"  yt-dlp download failed: {e}")
-            logger.info(f"  Falling back to direct download")
+            logger.info("  Falling back to direct download")
 
-        # Second attempt: Try direct download if yt-dlp failed
-        try:
-            logger.info(f"  Attempting direct download from {url}")
-            response = self.session.get(url, stream=True)
-            if response.status_code == 200:
-                logger.info(
-                    f"  Direct download successful, saving to: {filepath_direct}"
-                )
-                with open(filepath_direct, "wb") as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                return filepath_direct
-            else:
-                logger.info(
-                    f"  Direct download failed with status code: {response.status_code}"
-                )
-        except Exception as e:
-            logger.info(f"  Error during direct download: {e}")
-
-        # If we get here, both methods failed
         return None
