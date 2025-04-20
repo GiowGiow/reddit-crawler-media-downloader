@@ -1,0 +1,74 @@
+from __future__ import annotations
+
+import logging
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Optional
+
+from tqdm import tqdm  # type: ignore
+from src.domain.entities import DownloadResult, Post
+from src.domain.services import SongDownloadService
+
+from .ports import DownloaderPort, PostRepositoryPort
+
+logger = logging.getLogger(__name__)
+
+
+class DownloadSongsUseCase:
+    """Fetch many songs, optionally in parallel."""
+
+    def __init__(self, repo: PostRepositoryPort, downloader: DownloaderPort):
+        self._post_repository = repo
+        self._service = SongDownloadService(downloader)
+
+    def _process_post(self, post: Post) -> tuple[str, DownloadResult]:
+        result = self._service.download_for_post(post)
+        return post.id, result
+
+    def execute(
+        self,
+        flairs: List[str],
+        limit: Optional[int] = None,
+        workers: int = 1,
+        delay: float = 0.5,
+    ) -> None:
+        posts = self._post_repository.list_posts(flairs)
+        if limit is not None and limit > 0:
+            posts = posts[:limit]
+        total = len(posts)
+
+        logger.info(
+            "Starting downloads: %s posts, %s worker(s), %.1fs delay",
+            total,
+            workers,
+            delay,
+        )
+
+        success = 0
+        futures = []
+        if workers > 1:
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                futures = [pool.submit(self._process_post, p) for p in posts]
+                for f in tqdm(as_completed(futures), total=total, desc="Downloading"):
+                    post_id, res = f.result()
+                    if res.status == "success":
+                        success += 1
+                    self._post_repository.save_result(post_id, res)
+                    if delay > 0:
+                        time.sleep(delay)
+        else:
+            for p in tqdm(posts, desc="Downloading"):
+                post_id, res = self._process_post(p)
+                if res.status == "success":
+                    success += 1
+                self._post_repository.save_result(post_id, res)
+                if delay > 0:
+                    time.sleep(delay)
+
+        self._post_repository.commit()
+        logger.info(
+            "Finished: %s/%s successful (%.1f%%)",
+            success,
+            total,
+            (success / total * 100) if total else 0,
+        )

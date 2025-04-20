@@ -9,6 +9,7 @@ class AudioDomainType(Enum):
     YOUTUBE = "youtube.com"
     SUNO = "suno.com"
     SUNO_CDN = "cdn1.suno.ai"
+    SUNO_SELF = "self.sunoai"
     SOUNDCLOUD = "soundcloud.com"
 
     @classmethod
@@ -19,4 +20,4 @@ class AudioDomainType(Enum):
     @classmethod
     def get_suno_domains(cls) -> List[str]:
         """Return a list of Suno-related domains."""
-        return [cls.SUNO.value, cls.SUNO_CDN.value]
+        return [cls.SUNO.value, cls.SUNO_CDN.value, cls.SUNO_SELF.value]
