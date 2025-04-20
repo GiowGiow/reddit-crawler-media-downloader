@@ -153,6 +153,12 @@ def parse_arguments():
         "--save", help="Save the updated dataframe to JSONL file", default=True
     )
 
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Number of parallel workers for downloading",
+    )
     # Parse arguments
     args = parser.parse_args()
     return args

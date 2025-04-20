@@ -9,10 +9,11 @@ from typing import Any, Dict, Optional, Union
 from urllib.parse import urlparse
 
 import requests
-from song_downloader.src.constants import AudioDomainType
 import yt_dlp as youtube_dl
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
+
+from song_downloader.src.constants import AudioDomainType
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +222,7 @@ class MusicDownloader:
 
         return None
 
-    def download_generic_url(
+    def download_using_yt_dlp(
         self, url: str, post_id: str, domain: str
     ) -> Optional[Path]:
         """
@@ -333,5 +334,4 @@ class MusicDownloader:
         elif domain in AudioDomainType.get_suno_domains():
             return self.download_suno_audio(url, post_id)
         else:
-            # For all other domains, use the generic downloader which tries yt-dlp first
-            return self.download_generic_url(url, post_id, domain)
+            return self.download_using_yt_dlp(url, post_id, domain)
