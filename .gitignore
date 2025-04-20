@@ -6,3 +6,5 @@ reddit_data
 venv
 datasets
 *.pyc
+*.pb
+mtg_jamendo_genre-discogs-effnet-1.json
