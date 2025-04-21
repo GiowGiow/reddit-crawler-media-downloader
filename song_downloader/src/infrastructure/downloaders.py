@@ -100,7 +100,7 @@ class YtDlpDownloader(_BaseDownloader):
         "quiet": True,
         "no_warnings": True,
         "nocheckcertificate": True,
-        "ignoreerrors": True,
+        "ignoreerrors": False,
         "no_color": True,
         "geo_bypass": True,
         "retries": 10,

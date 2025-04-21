@@ -52,6 +52,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=1,
         help="Number of parallel download workers (default: 1)",
     )
+    p.add_argument(
+        "--only-failed",
+        action="store_true",
+        help="Only download posts that failed previously",
+    )
+    p.add_argument(
+        "--sleep",
+        type=float,
+        default=2,
+        help="Delay between downloads (default: 2s)",
+    )
     return p
 
 
@@ -73,7 +84,12 @@ def main(raw_args: list[str] | None = None):
     )
 
     use_case = DownloadSongsUseCase(repo, downloader)
-    use_case.execute(flairs=args.flairs, limit=args.max, workers=args.workers)
+    use_case.execute(
+        flairs=args.flairs,
+        limit=args.max,
+        workers=args.workers,
+        only_failed=args.only_failed,
+    )
 
 
 if __name__ == "__main__":  # pragma: no cover

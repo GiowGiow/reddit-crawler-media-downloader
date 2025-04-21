@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 class DownloadSongsUseCase:
     """Fetch many songs, optionally in parallel."""
 
-    def __init__(self, repo: PostRepositoryPort, downloader: DownloaderPort):
-        self._post_repository = repo
+    def __init__(self, repository: PostRepositoryPort, downloader: DownloaderPort):
+        self._post_repository = repository
         self._service = SongDownloadService(downloader)
 
     def _process_post(self, post: Post) -> tuple[str, DownloadResult]:
@@ -30,9 +30,10 @@ class DownloadSongsUseCase:
         flairs: List[str],
         limit: Optional[int] = None,
         workers: int = 1,
-        delay: float = 0.5,
+        delay: float = 2,
+        only_failed: bool = False,
     ) -> None:
-        posts = self._post_repository.list_posts(flairs)
+        posts = self._post_repository.list_posts(flairs, only_failed)
         if limit is not None and limit > 0:
             posts = posts[:limit]
         total = len(posts)

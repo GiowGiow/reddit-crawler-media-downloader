@@ -27,9 +27,11 @@ class RedditFileRepository(PostRepositoryPort):
             if col not in self._df.columns:
                 self._df[col] = None
 
-    # --------------------- PostRepositoryPort impl -----------------------
-    def list_posts(self, flair_filter: List[str]) -> List[Post]:
+    def list_posts(self, flair_filter: List[str], only_failed=False) -> List[Post]:
         subset = self._df[self._df["link_flair_text"].isin(flair_filter)]
+        if only_failed:
+            logging.info("Filtering for posts that failed to download")
+            subset = subset[subset["download_reason"] == "download failed or not audio"]
         subset = subset.copy()
         subset["domain_unified"] = subset["domain"].apply(unify_domain)
 
