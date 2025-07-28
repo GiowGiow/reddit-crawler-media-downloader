@@ -13,11 +13,11 @@ class AudioDomainType(Enum):
     SOUNDCLOUD = "soundcloud.com"
 
     @classmethod
-    def get_all_domains(cls) -> List[str]:
+    def get_all_domains(cls) -> list[str]:
         """Return a list of all domain values."""
         return [domain.value for domain in cls]
 
     @classmethod
-    def get_suno_domains(cls) -> List[str]:
+    def get_suno_domains(cls) -> list[str]:
         """Return a list of Suno-related domains."""
         return [cls.SUNO.value, cls.SUNO_CDN.value, cls.SUNO_SELF.value]

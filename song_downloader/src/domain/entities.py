@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+from enum import Enum
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,23 +25,38 @@ class Post:
         return f"ID: {self.id}\nTitle: {self.title}\nURL: {self.url}\nDomain: {self.domain}\nFlair: {self.flair}\nPermalink: https://www.reddit.com{self.permalink}\nPost Hint: {self.hint}\nDeleted: {self.was_deleted}\nSuno URL: {self.suno_url}\nGallery: {self.is_gallery}"
 
 
+class DownloadStatus(Enum):
+    SUCCESS = "success"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+    ERROR = "error"
+
+
+class DownloadReason(Enum):
+    NO_URL = "no url"
+    IMAGE_POST = "image post"
+    DELETED_VIDEO_POST = "deleted video post"
+    GALLERY_POST = "gallery post"
+    DOWNLOAD_FAILED_OR_NOT_AUDIO = "download failed or not audio"
+
+
 @dataclass(frozen=True, slots=True)
 class DownloadResult:
     """Outcome of attempting to fetch audio for a Post."""
 
-    status: str  # "success" | "skipped" | "failed"
-    local_path: Optional[Path] = None
-    reason: Optional[str] = None
+    status: DownloadStatus
+    local_path: Path | None = None
+    reason: DownloadReason | None = None
 
-    # Factory helpers -----------------------------------------------------
+    # Factory helpers
     @classmethod
     def success(cls, path: Path) -> "DownloadResult":
-        return cls(status="success", local_path=path)
+        return cls(status=DownloadStatus.SUCCESS, local_path=path)
 
     @classmethod
-    def skipped(cls, reason: str) -> "DownloadResult":
-        return cls(status="skipped", reason=reason)
+    def skipped(cls, reason: DownloadReason) -> "DownloadResult":
+        return cls(status=DownloadStatus.SKIPPED, reason=reason)
 
     @classmethod
-    def failed(cls, reason: str) -> "DownloadResult":
-        return cls(status="failed", reason=reason)
+    def failed(cls, reason: DownloadReason) -> "DownloadResult":
+        return cls(status=DownloadStatus.FAILED, reason=reason)

@@ -11,20 +11,20 @@ def sanitize_filename(filename: str) -> str:
 def unify_domain(domain: str) -> str:
     if not domain:
         return "N/A"
-    d = domain.lower().strip()
-    yt = {"youtube.com", "youtu.be", "m.youtube.com", "music.youtube.com"}
-    if d in yt:
+    lowercase_domain = domain.lower().strip()
+    youtube_domains = {"youtube.com", "youtu.be", "m.youtube.com", "music.youtube.com"}
+    if lowercase_domain in youtube_domains:
         return "youtube.com"
-    sc = {"soundcloud.com", "m.soundcloud.com", "on.soundcloud.com"}
-    if d in sc:
+    soundcloud_domains = {"soundcloud.com", "m.soundcloud.com", "on.soundcloud.com"}
+    if lowercase_domain in soundcloud_domains:
         return "soundcloud.com"
-    if d == "x.com":
+    if lowercase_domain == "x.com":
         return "twitter.com"
-    return d
+    return lowercase_domain
 
 
-def ensure_dir(p: Path) -> None:
-    p.mkdir(parents=True, exist_ok=True)
+def ensure_dir(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
 
 
 def extract_suno_url(selftext: str) -> str | None:

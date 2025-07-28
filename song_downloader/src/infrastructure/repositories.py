@@ -23,20 +23,29 @@ class RedditFileRepository(PostRepositoryPort):
         self._df = pd.read_json(self._input_path, lines=True)
 
         # Extend data‑frame columns for results if absent
-        for col in ("download_status", "download_path", "download_reason"):
-            if col not in self._df.columns:
-                self._df[col] = None
+        for column in ("download_status", "download_path", "download_reason"):
+            if column not in self._df.columns:
+                self._df[column] = None
 
-    def list_posts(self, flair_filter: List[str], only_failed=False) -> List[Post]:
-        subset = self._df[self._df["link_flair_text"].isin(flair_filter)]
-        if only_failed:
+    def list_posts(
+        self, flair_filter: list[str], fetch_only_failed=False
+    ) -> list[Post]:
+        flair_filtered_posts = self._df[self._df["link_flair_text"].isin(flair_filter)]
+
+        if fetch_only_failed:
             logging.info("Filtering for posts that failed to download")
-            subset = subset[subset["download_reason"] == "download failed or not audio"]
-        subset = subset.copy()
-        subset["domain_unified"] = subset["domain"].apply(unify_domain)
+            flair_filtered_posts = flair_filtered_posts[
+                flair_filtered_posts["download_reason"]
+                == "download failed or not audio"
+            ]
 
-        posts: List[Post] = []
-        for _, row in subset.iterrows():
+        flair_filtered_posts = flair_filtered_posts.copy()
+        flair_filtered_posts["domain_unified"] = flair_filtered_posts["domain"].apply(
+            unify_domain
+        )
+
+        posts: list[Post] = []
+        for _, row in flair_filtered_posts.iterrows():
             posts.append(
                 Post(
                     id=row.get("id"),
@@ -56,12 +65,13 @@ class RedditFileRepository(PostRepositoryPort):
         return posts
 
     def save_result(self, post_id: str, result: DownloadResult) -> None:
-        sel = self._df["id"] == post_id
+        post_id_selector = self._df["id"] == post_id
         if result.local_path:
-            self._df.loc[sel, "download_path"] = str(result.local_path)
-        self._df.loc[sel, "download_status"] = result.status
+            self._df.loc[post_id_selector, "download_path"] = str(result.local_path)
+
+        self._df.loc[post_id_selector, "download_status"] = result.status.value
         if result.reason:
-            self._df.loc[sel, "download_reason"] = result.reason
+            self._df.loc[post_id_selector, "download_reason"] = result.reason.value
 
     def commit(self) -> None:
         logger.info("Writing updated JSONL to %s", self._output_path)

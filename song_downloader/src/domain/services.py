@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Protocol
 
 from .constants import AudioDomainType
-from .entities import DownloadResult, Post
+from .entities import DownloadResult, Post, DownloadReason
 
 logger = logging.getLogger(__name__)
 
@@ -30,18 +30,18 @@ class SongDownloadService:
     def download_for_post(self, post: Post) -> DownloadResult:
         logger.info("Processing post \n%s\n", post)
         if not post.url:
-            return DownloadResult.skipped("no url")
+            return DownloadResult.skipped(DownloadReason.NO_URL)
 
         # Image posts can be skipped
         if post.hint == "image":
-            return DownloadResult.skipped("image post")
+            return DownloadResult.skipped(DownloadReason.IMAGE_POST)
 
         # Had a hosted video but was deleted
         if post.hint == "hosted:video" and post.was_deleted:
-            return DownloadResult.skipped("deleted video post")
+            return DownloadResult.skipped(DownloadReason.DELETED_VIDEO_POST)
 
         if post.is_gallery:
-            return DownloadResult.skipped("gallery post")
+            return DownloadResult.skipped(DownloadReason.GALLERY_POST)
 
         # Text post with suno url
         post_url = post.url
@@ -52,5 +52,5 @@ class SongDownloadService:
 
         path = self._downloader.download(post_url, post.id, domain)
         if path is None:
-            return DownloadResult.failed("download failed or not audio")
+            return DownloadResult.failed(DownloadReason.DOWNLOAD_FAILED_OR_NOT_AUDIO)
         return DownloadResult.success(path)
